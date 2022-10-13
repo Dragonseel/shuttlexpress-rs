@@ -9,3 +9,9 @@ authors = ["Lukas Saretzki"]
 [dependencies]
 hidapi = "*"
 winapi = { version = "*", features = ["winuser"] }
+tray-item = "*"
+serde = "*"
+ron = "*"
+
+[build-dependencies]
+winres = "*"

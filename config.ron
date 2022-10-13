@@ -1,0 +1,6 @@
+EventConfig(
+    buttons: (KeyStroke(173), None, None, None, KeyStroke(179)),
+    jog_changed: None,
+    wheel_up: KeyStroke(175),
+    wheel_down: KeyStroke(174),
+)
