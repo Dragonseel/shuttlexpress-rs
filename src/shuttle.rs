@@ -1,6 +1,7 @@
 use std::io::Read;
 
 use serde::Deserialize;
+use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput};
 
 use crate::{ButtonEventType, EventType};
 
@@ -39,13 +40,14 @@ impl Shuttle {
         }
     }
 
-    pub fn update(&mut self, buffer: &[u8]) {
+    pub fn update(&mut self, buffer: [u8; 6]) {
+
         let new_buttons = [
-            (buffer[3] & 0b00010000) > 0,
-            (buffer[3] & 0b00100000) > 0,
-            (buffer[3] & 0b01000000) > 0,
-            (buffer[3] & 0b10000000) > 0,
-            (buffer[4] & 0b00000001) > 0,
+            (buffer[4] & 0b00010000) > 0,
+            (buffer[4] & 0b00100000) > 0,
+            (buffer[4] & 0b01000000) > 0,
+            (buffer[4] & 0b10000000) > 0,
+            (buffer[5] & 0b00000001) > 0,
         ];
 
         for index in 0..5 {
@@ -67,14 +69,14 @@ impl Shuttle {
         self.buttons[3] = new_buttons[3];
         self.buttons[4] = new_buttons[4];
 
-        let new_jog = buffer[0] as i8;
+        let new_jog = buffer[1] as i8;
 
         if self.jog != new_jog {
             self.on_event(EventType::Jog(new_jog));
         }
         self.jog = new_jog;
 
-        let new_wheel = buffer[1];
+        let new_wheel = buffer[2];
         if self.wheel != new_wheel {
             self.on_event(EventType::Wheel(
                 ((new_wheel as i16) - (self.wheel as i16)) as i8,
@@ -91,23 +93,22 @@ impl Shuttle {
             EventReaction::KeyStroke(key) => unsafe {
                 println!("Key: {key}, {event_type:?}");
 
-                use winapi::um::winuser::*;
                 let mut input = INPUT {
-                    type_: INPUT_KEYBOARD,
-                    u: std::mem::zeroed(),
+                    r#type: INPUT_KEYBOARD,
+                    Anonymous: std::mem::zeroed(),
                 };
 
-                *input.u.ki_mut() = KEYBDINPUT {
-                    wVk: key,
+                input.Anonymous.ki = KEYBDINPUT {
+                    wVk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(key),
                     wScan: 0,
                     dwFlags: match event_type {
                         ButtonEventType::Release => KEYEVENTF_KEYUP,
-                        _ => 0,
+                        _ => windows::Win32::UI::Input::KeyboardAndMouse::KEYBD_EVENT_FLAGS(0u32),
                     },
                     time: 0,
                     dwExtraInfo: 1,
                 };
-                SendInput(1, &mut input, std::mem::size_of::<INPUT>() as i32);
+                SendInput(&[input], std::mem::size_of::<INPUT>() as i32);
             },
         }
     }
